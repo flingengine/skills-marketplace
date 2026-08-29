@@ -1,0 +1,22 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "fling-engine-skills",
+  "description": "Claude Code skills for developing Fling Engine (https://github.com/flingengine/FlingEngine): building, testing, coding style, and architecture guidance.",
+  "owner": {
+    "name": "Fling Engine",
+    "url": "https://github.com/flingengine"
+  },
+  "plugins": [
+    {
+      "name": "fling-engine",
+      "source": "./plugins/fling-engine",
+      "description": "Build, test, coding-style, and architecture skills for working in the FlingEngine repository.",
+      "version": "0.2.0",
+      "author": {
+        "name": "Fling Engine"
+      },
+      "homepage": "https://github.com/flingengine/FlingEngine",
+      "keywords": ["fling-engine", "vulkan", "cmake", "game-engine", "cpp"]
+    }
+  ]
+}
