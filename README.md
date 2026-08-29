@@ -33,11 +33,17 @@ development so they only activate on relevant tasks:
 | `fling-architecture` | Current folder/module layout, Gameplay/Graphics/Editor boundaries |
 | `fling-adding-modules` | Adding a new CMake engine module with `fling_add_module` |
 
-These mirror the `AGENTS.md` / `Skills/` guidance maintained in the
-[FlingEngine repo itself](https://github.com/flingengine/FlingEngine) — this
-marketplace packages that guidance as installable Claude Code skills so it
-travels with your Claude Code setup rather than needing to be present in
-every clone.
+Each skill here is a thin wrapper: it tells Claude to read the matching
+canonical file — `Skills/<topic>.md` in the FlingEngine repo you're actually
+working in — and only falls back to an inline summary if that file isn't
+present (for example, if FlingEngine is a dependency rather than the repo
+you've checked out). The canonical files stay plain, tool-agnostic markdown
+in the engine repo, so anything else that reads markdown — another agent, an
+IDE, a human — gets the same context, not just Claude. The `fling-coding-style`
+skill also adds one thing that isn't in the engine repo's own docs: a
+Simplified Technical English (ASD-STE100) convention for comment wording,
+kept here since it's a Claude-specific writing rule rather than an engine
+convention.
 
 ## Repo layout
 
@@ -51,8 +57,19 @@ plugins/fling-engine/             # the one plugin this marketplace ships
 ## Updating skills
 
 FlingEngine's own docs (`AGENTS.md`, `Skills/*.md`, `docs/BuildModules.md`)
-are the source of truth. When those change upstream, update the matching
-`SKILL.md` here and bump `version` in both `plugin.json` and the marketplace
+are the source of truth for everything except the ASD-STE100 comment-language
+rules. Since each `SKILL.md` here just points at those files, most upstream
+doc changes need no edit here at all. Update a `SKILL.md` in this repo only
+when:
+
+- Its **fallback summary** (used when `Skills/<topic>.md` is missing) has
+  drifted from the real file enough to mislead someone relying on it.
+- Its **frontmatter description** needs to change for Claude to trigger it
+  correctly.
+- You're changing the ASD-STE100 section in `fling-coding-style`, which is
+  maintained only here.
+
+After any change, bump `version` in both `plugin.json` and the marketplace
 entry in `marketplace.json`.
 
 ## Adding a new skill

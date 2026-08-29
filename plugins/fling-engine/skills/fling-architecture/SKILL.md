@@ -5,66 +5,34 @@ description: Use when deciding where new Fling Engine code belongs, touching CMa
 
 # Fling Engine architecture / where things live
 
-This is orientation for today's layout, not a design doc. Fling Engine is
-mid-migration from one monolithic library into separate CMake modules (Core,
-Resources, Gameplay, Graphics, Editor, Engine) — see the `fling-adding-modules`
-skill and `docs/BuildModules.md` for the full plan and its locked decisions
-before touching CMake targets, `FLING_ENGINE_INC()`, or cross-folder includes.
-Several things that look like obvious cleanups are explicitly deferred or
-ruled out there.
+Canonical source: `Skills/architecture.md` at the root of the FlingEngine
+repo you are working in. **If that file exists in the current working tree,
+read it now** — it is the up-to-date, tool-agnostic reference and takes
+precedence over the summary below. It also points to `docs/BuildModules.md`
+for the in-progress module split and its locked decisions — read that too
+before touching CMake targets, `FLING_ENGINE_INC()`, or cross-folder
+includes; several plausible-looking cleanups are explicitly deferred or
+rejected there.
 
-## Today's layout
+Use the fallback summary only if `Skills/architecture.md` is missing.
 
-- **`FlingEngine/`** — the engine, currently one CMake library (`FlingEngine`)
-  built from almost every source file under this tree via glob. Subfolders:
-  `Core` (includes former `Utils` + `Platform`), `Graphics`, `Gameplay`,
-  `Resources`, `Editor`. CMake/includes still treat it as one target —
-  `FLING_ENGINE_INC()` adds every engine `inc/` dir to consumers, so folder
-  location alone doesn't enforce isolation yet.
-- **`Sandbox/`** — the sample game + editor, one executable today. Editor
-  support is toggled by a project-wide `WITH_EDITOR` define (planned for
-  removal in favor of two separate executables, `SandboxGame` /
-  `SandboxEditor`).
-- **`FlingTests/`** — Catch2 tests, links the full `FlingEngine` library. See
-  the `fling-testing` skill.
-- **`external/`** — vendored third-party dependencies (submodules). Never
-  modified.
-- **`docs/`** — human-facing docs; `docs/CodingStyle.md` and
-  `docs/BuildModules.md` are the two that matter day-to-day. Most other files
-  under `docs/` are generated Doxygen HTML output, not hand-maintained.
-- **`scripts/`** — repo tooling (`check_comment_style.py`, the one-time
-  `migrate_doxygen_comments.py` migration).
-- **`CMake/`** — CMake helper modules (e.g. `FlingEngineInc.cmake`,
-  `FlingModule.cmake`).
+## Fallback summary
 
-## Rules that hold regardless of the module-split's progress
+Today's layout: `FlingEngine/` is one CMake library built via glob, with
+subfolders `Core` (former Utils + Platform), `Graphics`, `Gameplay`,
+`Resources`, `Editor`. `Sandbox/` is the sample game + editor. `FlingTests/`
+links the full `FlingEngine` library. `external/` is vendored and never
+modified. `docs/CodingStyle.md` and `docs/BuildModules.md` are the two
+hand-maintained docs that matter day-to-day.
 
-These are invariants, not aspirational — treat a violation as a bug to fix,
-not a style preference:
+Rules that hold regardless of the module-split's progress:
 
-- **Gameplay must not include Graphics.** Types like `Transform`, `Camera`,
-  `World`, `Game` live in Gameplay and must not include `MeshRenderer.h` or
-  any Vulkan-facing type. Graphics *may* include Gameplay headers
-  (`Transform`, `Camera`) — the dependency only goes one way.
-- **Editor is a leaf.** `Engine` and `Graphics` must not include `BaseEditor`
-  or any Editor header. If you find yourself adding such an include, that's
-  the exact bug `docs/BuildModules.md` calls out — look for the debug-UI hook
-  pattern it describes (an `IDebugUI`-style callback) instead of a direct
-  Editor dependency.
-- **Don't add a new module folder or CMake target without reading the "Locked
-  decisions" section of `docs/BuildModules.md` first.** Several plausible
-  approaches — per-module PCH, git submodules per engine system — are
-  explicitly rejected there.
+- **Gameplay must not include Graphics.** `Transform`, `Camera`, `World`,
+  `Game` must not include `MeshRenderer.h` or any Vulkan-facing type.
+  Graphics may include Gameplay headers; not the other way around.
+- **Editor is a leaf.** `Engine` and `Graphics` must not include
+  `BaseEditor` or any Editor header — use the debug-UI hook pattern instead.
+- **Don't add a new module folder or CMake target** without reading the
+  "Locked decisions" section of `docs/BuildModules.md` first.
 
-## Where new code goes
-
-- Math/logging/platform-level utility → `FlingEngine/Core`.
-- Anything touching `World`, `Transform`, `Camera`, or general game types
-  (but not rendering) → `FlingEngine/Gameplay`.
-- Rendering, Vulkan, meshes, lights → `FlingEngine/Graphics`.
-- Asset loading/management → `FlingEngine/Resources`.
-- Editor-only UI/tooling → `FlingEngine/Editor`, and only linked by editor
-  executables.
-
-When in doubt about a specific new module, use the `fling-adding-modules`
-skill.
+For the how-to on adding a new module, see `fling-adding-modules`.

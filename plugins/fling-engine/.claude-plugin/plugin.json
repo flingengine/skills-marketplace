@@ -1,6 +1,6 @@
 {
   "name": "fling-engine",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Skills for developing Fling Engine (https://github.com/flingengine/FlingEngine) with Claude Code: building, testing, coding style, and module architecture.",
   "author": {
     "name": "Fling Engine"

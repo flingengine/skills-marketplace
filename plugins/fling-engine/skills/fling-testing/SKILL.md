@@ -5,53 +5,38 @@ description: Use when running Fling Engine's test suite or adding a new Catch2 t
 
 # Testing Fling Engine
 
-Fling Engine uses [Catch2 3](https://github.com/catchorg/Catch2) for first-party
-tests. The test target is `FlingTests`, built from `FlingTests/src`, and it
-links the full `FlingEngine` library — tests can exercise real engine code,
-not just isolated units.
+Canonical source: `Skills/testing.md` at the root of the FlingEngine repo you
+are working in. **If that file exists in the current working tree, read it
+now** — it is the up-to-date, tool-agnostic reference and takes precedence
+over the summary below.
 
-## Running tests
+Use the fallback summary only if `Skills/testing.md` is missing.
 
-Build the `FlingTests` target as part of a normal build (see the
-`fling-building` skill), then run the resulting binary directly:
+## Fallback summary
 
-```bash
-# Linux
-./build/FlingTests/bin/FlingTests
+Fling Engine uses Catch2 3. The test target is `FlingTests`, built from
+`FlingTests/src`, and links the full `FlingEngine` library, so tests exercise
+real engine code.
 
-# Windows (path includes the build config)
-build\FlingTests\bin\<Debug|Release>\FlingTests.exe
-```
-
-`Logs/` should exist before running — the engine writes runtime logs there;
-CI runs `mkdir -p Logs` first, and a missing directory is a common local
-failure that looks unrelated to the actual test.
-
-Catch2's CLI flags work as usual:
+Build `FlingTests` as part of a normal build (see `fling-building`), then run
+the binary directly:
 
 ```bash
-./build/FlingTests/bin/FlingTests "[tag]"   # filter by tag
-./build/FlingTests/bin/FlingTests --list-tests
+./build/FlingTests/bin/FlingTests                       # Linux
+build\FlingTests\bin\<Debug|Release>\FlingTests.exe      # Windows
 ```
 
-## Adding a new test
+Make sure `Logs/` exists before running — the engine writes runtime logs
+there. Catch2 CLI flags work as usual (`"[tag]"` to filter, `--list-tests`).
 
-- Add a new `.cpp` under `FlingTests/src`. Look at existing files
-  (`ResourceTests.cpp`, `UtilsTests.cpp`, `RendererTests.cpp`) for naming and
-  structure conventions before adding your own.
-- `FlingTests/CMakeLists.txt` globs sources with `CONFIGURE_DEPENDS`, so a new
-  file is picked up automatically — no CMakeLists edit needed. Re-run CMake
-  configure if a new file doesn't show up in the build.
-- Use Catch2's `TEST_CASE` / `SECTION` macros.
-- Follow the `fling-coding-style` skill for any doc comments you add to test
-  code.
-- Prefer testing first-party engine code under `FlingEngine/`. Do not add
-  tests that exercise `external/` internals directly — that's vendored code.
+To add a test: add a new `.cpp` under `FlingTests/src` (match the style of
+existing files like `ResourceTests.cpp`). The build globs sources with
+`CONFIGURE_DEPENDS`, so no CMakeLists edit is needed — just re-run CMake
+configure if the new file doesn't show up. Use `TEST_CASE`/`SECTION`, follow
+`fling-coding-style` for any doc comments, and test first-party code under
+`FlingEngine/` — not `external/` internals.
 
-## CI expectations
-
-Every PR runs `FlingTests` on Linux (GCC + Clang) and Windows (MSVC Debug/
-Release + MinGW64) via `.github/workflows/build.yml`, plus the comment-style
-check. A test that only passes on one platform is not finished — before
-calling a new test done, check for platform-specific assumptions: path
-separators, endianness, float precision, and undefined iteration order.
+Every PR runs `FlingTests` on Linux (GCC + Clang) and Windows (MSVC
+Debug/Release + MinGW64). A test that only passes on one platform isn't
+finished — check for path-separator, endianness, and float-precision
+assumptions before calling it done.

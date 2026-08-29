@@ -10,10 +10,20 @@ Applies to first-party Fling Engine C++: `FlingEngine/`, `Sandbox/`,
 third-party code and is explicitly out of scope for any refactor, formatting
 pass, or cleanup.
 
-## Documentation comments
+## Doc comments, formatting, and enforcement
 
-Use modern Doxygen-style blocks with a plain description. Do **not** use
-Visual Studio / XML-wizard tags like `@brief`, and do not use `/*!`.
+Canonical source for these: `Skills/coding-style.md` and
+`docs/CodingStyle.md` at the root of the FlingEngine repo you are working in.
+**If `Skills/coding-style.md` exists in the current working tree, read it
+now** — it is the up-to-date, tool-agnostic reference (any tool or human can
+read it, not just Claude) and takes precedence over the summary below.
+
+Use the fallback summary only if that file is missing.
+
+### Fallback summary
+
+Use modern Doxygen-style blocks with a plain description — no `@brief`, no
+`/*!`:
 
 ```cpp
 /**
@@ -26,21 +36,20 @@ Visual Studio / XML-wizard tags like `@brief`, and do not use `/*!`.
 bool Init(const int32 Argc, const char* ArgV[]);
 ```
 
-Guidelines:
-
-- Lead with a short description; skip `@brief` entirely.
-- Use `@param` / `@return` / `@see` only when they add information the
-  signature doesn't already make obvious. Don't write auto-generated noise
-  like `@return float GetTimef` or an empty `@brief` line.
-- Prefer `/** ... */` for API docs. A trivial one-line member can use a
-  single-line `/** ... */`:
-
-```cpp
-/** The time that the program started */
-double m_startTime = 0.0;
-```
+Lead with a short description; use `@param`/`@return`/`@see` only when they
+add information the signature doesn't already make obvious. Layout is
+enforced by `.clang-format` at the repo root — run `clang-format`, don't
+hand-format. Comment *content* is checked by
+`python3 scripts/check_comment_style.py`, which rejects leftover `@brief`
+and `/*!`. Nothing under `external/` gets reformatted or comment-style-fixed,
+ever.
 
 ## Comment language: Simplified Technical English (ASD-STE100)
+
+This section is a convention added by this plugin — it is not (yet) part of
+FlingEngine's own docs, so it applies regardless of whether
+`Skills/coding-style.md` exists. If you add it to the engine's own docs,
+update this note.
 
 Write every comment — doc comments and inline `//` comments alike — in
 Simplified Technical English, the controlled-language standard (ASD-STE100)
@@ -126,31 +135,6 @@ STE:
 // The renderer uses this value if the swapchain is not ready yet.
 // This can happen on slow hardware.
 ```
-
-## Formatting
-
-Layout/formatting is enforced by `.clang-format` at the repo root — run
-`clang-format`, don't hand-format or rely on manual judgment about spacing,
-braces, etc. clang-format does **not** validate documentation tags; that's a
-separate check (below).
-
-To format all first-party files:
-
-```bash
-find FlingEngine Sandbox FlingTests -type f \( -name '*.h' -o -name '*.hpp' -o -name '*.cpp' \) \
-  | xargs clang-format -i
-```
-
-## Enforcement
-
-- **Comment content**: `python3 scripts/check_comment_style.py` rejects
-  leftover `@brief` and `/*!` in first-party sources. Run this after adding or
-  editing doc comments, before considering the change done.
-- **Layout**: `.clang-format` at the repo root, run via `clang-format`.
-
-A one-time migration script from the old `@brief`-heavy style exists at
-`scripts/migrate_doxygen_comments.py` (see issue #166) — it's historical, not
-a pattern to reuse for new code.
 
 ## What not to touch
 
