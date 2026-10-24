@@ -1,8 +1,13 @@
 # skills-marketplace
 
-A Claude Code plugin marketplace with skills for developing
-[Fling Engine](https://github.com/flingengine/FlingEngine) — a cross-platform
+A Claude Code plugin marketplace for developing
+[Fling Engine](https://github.com/flingengine/FlingEngine), a cross-platform
 Vulkan game engine in C++.
+
+| Plugin | What it adds |
+|--------|--------------|
+| `fling-engine` | Skills for building, testing, coding style, and architecture in the FlingEngine repo |
+| `rollback-netcode` | An expert subagent for rollback, client-side prediction, and lag compensation, with a credited reference library |
 
 ## Install
 
@@ -11,6 +16,7 @@ In Claude Code:
 ```
 /plugin marketplace add flingengine/skills-marketplace
 /plugin install fling-engine@fling-engine-skills
+/plugin install rollback-netcode@fling-engine-skills
 ```
 
 Or from the CLI:
@@ -18,9 +24,10 @@ Or from the CLI:
 ```bash
 claude plugin marketplace add flingengine/skills-marketplace
 claude plugin install fling-engine@fling-engine-skills
+claude plugin install rollback-netcode@fling-engine-skills
 ```
 
-## What you get
+## `fling-engine`
 
 Installing the `fling-engine` plugin adds five skills, scoped to FlingEngine
 development so they only activate on relevant tasks:
@@ -45,13 +52,33 @@ Simplified Technical English (ASD-STE100) convention for comment wording,
 kept here since it's a Claude-specific writing rule rather than an engine
 convention.
 
+## `rollback-netcode`
+
+Adds the `rollback-netcode:rollback-netcode-expert` subagent. Claude
+delegates to it for netcode design, implementation, review, and debugging. It
+covers P2P rollback (GGPO-style), server-authoritative prediction and replay,
+server-side rewind, input redundancy, time sync, and determinism testing.
+Invoke it directly with `@agent-rollback-netcode:rollback-netcode-expert`.
+
+It answers from study notes bundled in `plugins/rollback-netcode/references/`:
+GGPO (Tony Cannon), Michael Stallone's GDC 2018 NetherRealm talk, Timothy
+Ford's GDC 2017 Overwatch talk, and Glazer & Madhav's *Multiplayer Game
+Programming* Ch. 8. Every source is credited in its `notes.md`.
+`references/README.md` lists the rules for adding a source: notes in your own
+words, short attributed quotes only, and no transcripts, scans, or unlicensed
+code.
+
 ## Repo layout
 
 ```
 .claude-plugin/marketplace.json   # marketplace manifest
-plugins/fling-engine/             # the one plugin this marketplace ships
+plugins/fling-engine/
   .claude-plugin/plugin.json
   skills/<skill-name>/SKILL.md
+plugins/rollback-netcode/
+  .claude-plugin/plugin.json
+  agents/rollback-netcode-expert.md
+  references/<source>/notes.md
 ```
 
 ## Updating skills
@@ -70,7 +97,8 @@ when:
   maintained only here.
 
 After any change, bump `version` in both `plugin.json` and the marketplace
-entry in `marketplace.json`.
+entry in `marketplace.json`. The same applies to `rollback-netcode` when you
+edit its agent or references.
 
 ## Adding a new skill
 

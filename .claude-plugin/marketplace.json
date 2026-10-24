@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "fling-engine-skills",
-  "description": "Claude Code skills for developing Fling Engine (https://github.com/flingengine/FlingEngine): building, testing, coding style, and architecture guidance.",
+  "description": "Claude Code plugins for Fling Engine (https://github.com/flingengine/FlingEngine): engine development skills, and a rollback / client-side prediction netcode expert agent.",
   "owner": {
     "name": "Fling Engine",
     "url": "https://github.com/flingengine"
@@ -16,7 +16,31 @@
         "name": "Fling Engine"
       },
       "homepage": "https://github.com/flingengine/FlingEngine",
-      "keywords": ["fling-engine", "vulkan", "cmake", "game-engine", "cpp"]
+      "keywords": [
+        "fling-engine",
+        "vulkan",
+        "cmake",
+        "game-engine",
+        "cpp"
+      ]
+    },
+    {
+      "name": "rollback-netcode",
+      "source": "./plugins/rollback-netcode",
+      "description": "Expert subagent for rollback, client-side prediction, and lag compensation, with a credited reference library (GGPO, Stallone GDC 2018, Ford GDC 2017, Glazer & Madhav).",
+      "version": "0.1.0",
+      "author": {
+        "name": "Fling Engine"
+      },
+      "homepage": "https://github.com/flingengine/skills-marketplace",
+      "keywords": [
+        "netcode",
+        "rollback",
+        "client-side-prediction",
+        "lag-compensation",
+        "multiplayer",
+        "ggpo"
+      ]
     }
   ]
 }

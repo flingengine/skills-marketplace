@@ -1,0 +1,11 @@
+{
+  "name": "rollback-netcode",
+  "version": "0.1.0",
+  "description": "A rollback / client-side prediction netcode expert agent, with a credited reference library of notes on GGPO, NetherRealm's and Blizzard's GDC talks, and Multiplayer Game Programming.",
+  "author": {
+    "name": "Fling Engine"
+  },
+  "homepage": "https://github.com/flingengine/skills-marketplace",
+  "license": "MIT",
+  "keywords": ["netcode", "rollback", "client-side-prediction", "lag-compensation", "multiplayer", "ggpo", "game-engine"]
+}
