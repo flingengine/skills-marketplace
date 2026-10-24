@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
   "name": "fling-engine-skills",
-  "description": "Claude Code plugins for Fling Engine (https://github.com/flingengine/FlingEngine): engine development skills, and a rollback / client-side prediction netcode expert agent.",
+  "description": "Claude Code plugins for Fling Engine (https://github.com/flingengine/FlingEngine): engine development skills, a rollback / client-side prediction netcode expert agent, and a strict-ECS gameplay-architecture skill.",
   "owner": {
     "name": "Fling Engine",
     "url": "https://github.com/flingengine"
@@ -28,7 +28,7 @@
       "name": "rollback-netcode",
       "source": "./plugins/rollback-netcode",
       "description": "Expert subagent for rollback, client-side prediction, and lag compensation, with a credited reference library (GGPO, Stallone GDC 2018, Ford GDC 2017, Glazer & Madhav).",
-      "version": "0.1.0",
+      "version": "0.2.0",
       "author": {
         "name": "Fling Engine"
       },
@@ -40,6 +40,23 @@
         "lag-compensation",
         "multiplayer",
         "ggpo"
+      ]
+    },
+    {
+      "name": "gameplay-architecture",
+      "source": "./plugins/gameplay-architecture",
+      "description": "Strict ECS gameplay-architecture skill in the Overwatch style (Ford, GDC 2017): stateless systems, singleton components, utility-function rules, deferred side effects, and a migration path for Fling Engine.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Fling Engine"
+      },
+      "homepage": "https://github.com/flingengine/skills-marketplace",
+      "keywords": [
+        "ecs",
+        "entity-component-system",
+        "gameplay-architecture",
+        "entt",
+        "game-engine"
       ]
     }
   ]

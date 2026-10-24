@@ -8,6 +8,7 @@ Vulkan game engine in C++.
 |--------|--------------|
 | `fling-engine` | Skills for building, testing, coding style, and architecture in the FlingEngine repo |
 | `rollback-netcode` | An expert subagent for rollback, client-side prediction, and lag compensation, with a credited reference library |
+| `gameplay-architecture` | A skill for building systems as a strict ECS in the Overwatch style, plus a migration path for Fling Engine |
 
 ## Install
 
@@ -17,6 +18,7 @@ In Claude Code:
 /plugin marketplace add flingengine/skills-marketplace
 /plugin install fling-engine@fling-engine-skills
 /plugin install rollback-netcode@fling-engine-skills
+/plugin install gameplay-architecture@fling-engine-skills
 ```
 
 Or from the CLI:
@@ -25,6 +27,7 @@ Or from the CLI:
 claude plugin marketplace add flingengine/skills-marketplace
 claude plugin install fling-engine@fling-engine-skills
 claude plugin install rollback-netcode@fling-engine-skills
+claude plugin install gameplay-architecture@fling-engine-skills
 ```
 
 ## `fling-engine`
@@ -62,11 +65,22 @@ Invoke it directly with `@agent-rollback-netcode:rollback-netcode-expert`.
 
 It answers from study notes bundled in `plugins/rollback-netcode/references/`:
 GGPO (Tony Cannon), Michael Stallone's GDC 2018 NetherRealm talk, Timothy
-Ford's GDC 2017 Overwatch talk, and Glazer & Madhav's *Multiplayer Game
+Ford's GDC 2017 Overwatch talk (netcode half), and Glazer & Madhav's *Multiplayer Game
 Programming* Ch. 8. Every source is credited in its `notes.md`.
 `references/README.md` lists the rules for adding a source: notes in your own
 words, short attributed quotes only, and no transcripts, scans, or unlicensed
 code.
+
+## `gameplay-architecture`
+
+Adds the `ecs-architecture` skill. Claude loads it when you design, write,
+review, or refactor ECS systems. It holds the strict ECS rules from Timothy
+Ford's GDC 2017 Overwatch talk: components with no functions, systems with no
+state, singleton components, utility-function call-site rules, deferred side
+effects, and explicit tuples. It also has a review checklist and a step-by-step
+direction for moving Fling Engine from `Game::Update` and engine singletons to
+that model. Load it by hand with `/gameplay-architecture:ecs-architecture`.
+The ECS half of the talk's notes ships with it.
 
 ## Repo layout
 
@@ -79,6 +93,10 @@ plugins/rollback-netcode/
   .claude-plugin/plugin.json
   agents/rollback-netcode-expert.md
   references/<source>/notes.md
+plugins/gameplay-architecture/
+  .claude-plugin/plugin.json
+  skills/ecs-architecture/SKILL.md
+  skills/ecs-architecture/references/overwatch-ecs-notes.md
 ```
 
 ## Updating skills
@@ -97,8 +115,8 @@ when:
   maintained only here.
 
 After any change, bump `version` in both `plugin.json` and the marketplace
-entry in `marketplace.json`. The same applies to `rollback-netcode` when you
-edit its agent or references.
+entry in `marketplace.json`. The same applies to `rollback-netcode` and
+`gameplay-architecture` when you edit their agents, skills, or references.
 
 ## Adding a new skill
 

@@ -1,4 +1,4 @@
-# Notes: "Overwatch Gameplay Architecture and Netcode" (GDC 2017)
+# Notes: Overwatch netcode (from "Overwatch Gameplay Architecture and Netcode", GDC 2017)
 
 ## Source and credit
 
@@ -15,64 +15,12 @@
 | Model | **Client-server, server-authoritative, client-side prediction with rollback-and-replay of inputs**, fixed 60 Hz command frames |
 | Sections | ECS gameplay architecture 00:00 to 22:19 and 43:27 to 50:18; netcode 22:19 to 43:27; Q&A from ~50:18. Timestamps below are approximate video times (mm:ss) and may be offset by a few seconds on the official upload. |
 
+
+This file covers the **netcode** half of the talk. The ECS gameplay-architecture half is in the `gameplay-architecture` plugin (`skills/ecs-architecture/references/overwatch-ecs-notes.md`).
+
 ## One-paragraph summary
 
 Overwatch runs a fixed-timestep, quantized, "deterministic enough" simulation on both client and server. The client is always ahead of the server by half RTT plus a small input buffer. The client predicts movement, abilities (via the StateScript language which can scrub time), and hit registration, keeping ring buffers of inputs and movement states. When a server snapshot disagrees with the recorded prediction for that frame, the client **restores the authoritative state and replays all inputs since then to "now"**. Packet loss is handled by a sliding window of redundant inputs and by **time dilation** (the client ticks slightly faster to refill the server's input buffer). The server uses **backwards reconciliation** (rewind targets with a movement-state component to the shooter's frame of reference) for hit registration, with extrapolation clamps at high ping. ECS keeps netcode confined to a handful of systems.
-
-## Gameplay architecture: ECS (00:00 to 22:19, plus 43:27 to 50:18)
-
-The talk's stated goal is "techniques for reducing complexity in an ever growing codebase ... by adhering to a strict architecture"; netcode is the worked example. They found these rules over about 3 years, starting from an audited prototype engine.
-
-### The canonical model (01:00)
-- **World** = collection of systems + entities. **Entity** = an ID that maps to a set of components. **Components have state and no functions; systems have functions and no state.** "Components have no functions and systems have no fields."
-- A **system tick iterates tuples** of components (the set of component types the behavior needs). A system does not know what an entity *is*; it only acts on its slice. An entity is subject to a behavior only if it has the *whole* tuple (02:43, 06:58).
-- Example tick (prototype `PhysicsSystem`, 02:43): run the underlying physics world sim (Havok / Box2D / in-house "Domino"), then for each `{DynamicPhysics, Transform, Contact}` tuple, read the physics proxy and copy results into `Transform` and `Contact`.
-
-### Overwatch's implementation (03:35)
-- World = `EntityAdmin`: array of systems + hashmap of entities keyed by entity ID (`uint32`). Entity = ID + optional resource handle to its **entity definition** asset.
-- `Component` is a base class with hundreds of subclasses. Polymorphism is used **only for lifetime** (create/destroy overrides). The only other methods allowed are small accessors, never behaviors.
-- Deviation from canon: instead of fixed tuples, a system iterates a **primary component** and fetches **siblings** (e.g. iterate `Derp`, get sibling `Herp`). Ford regrets this (see Lessons).
-- Scale: client ~46 systems / ~103 component types. Systems that touch many components should mostly **read** them as pure functions. The few systems that mutate many components must manage that complexity themselves.
-- Worked system (05:16): `PlayerConnectionSystem` enforces AFK on servers. Tuple `{Connection, InputStream, Stats}`: if input shows a button press and stats show a contribution, reset the AFK timer; otherwise use the connection handle to send a warning/kick. AI bots have `Stats` but no `Connection`/`InputStream`, so they are never subject to it.
-
-### Why separate state from behavior (06:58)
-- An OOP `Connection::Update()` would have to pick one behavior, but `Connection` serves many: AFK subject, broadcast-message target list, player-name source, persistence/unlock lookup. "Connection is not an object in the OOP sense. It means different things to different systems at different times."
-- **Cherry-tree analogy**: the same tree is a different subject to you, the HOA president, a gardener, a bird, a tax assessor, and a termite. It is easier to describe all behaviors of a thing when you split them by observer. Concretely: `PlayerConnectionSystem` (AFK), `ConnectionUtil` (broadcast), client UX scoreboard system (name), all over the same `Connection` state.
-
-### Problem 1: systems that keep state (08:36)
-- Legacy-ported systems had member variables, e.g. **`InputSystem` held the input state** and other systems reached it through a global accessor. Costs: **compile times** (system headers included by other systems, so refactoring one recompiles many), **coupling** (behavior leaked: `PostBuildPlayerCommand` lived in `InputSystem` although filling `PlayerCommand` is `CommandSystem`'s job, so it was unclear where new code goes).
-- **Kill Cam broke it (10:58).** Kill Cam = a second pristine `EntityAdmin` fed an 8-12 s server network stream as if it came off the wire; its systems don't know they aren't live. With two admins, every "grab the global system B" call site was now wrong.
-- **Fix: singleton components (11:47).** A component type with exactly one instance per `EntityAdmin`, on an anonymous entity, accessed directly through the admin. Most system state moved into singletons. Observation: state that one system "begs for" is almost always wanted by another system later, so singletons get ahead of coupling. **~40% of all components are singletons.**
-- Example: `SingletonInput` holds button state. `InputSystem` still exists but only reads the OS, applies bindings and per-hero settings, and fills `SingletonInput`. `LocalPlayerMovementSystem` reads it to predict; `MovementStateSystem` reads it to package input for the server. `PostBuildPlayerCommand` moved into `CommandSystem`, so **every mutation of `PlayerCommand` happens in one file, in one update call**. "All that ambiguity goes away." (14:06)
-
-### Problem 2: shared behavior -> utility functions (14:55)
-- When several systems need the same behavior (HOA president and gardener both want the leaf count), put it in a **utility function**, not in one system that others call.
-- Example: `CombatUtil::IsHostileTo(a, b)`, called by many systems. Reads only 3 optional components: `FilterBits` (team index), `PetMaster` (key shared with its pets), `Pet` (e.g. Torbjörn's turret). No `FilterBits` -> not hostile (two doors); same team -> not hostile; "hostile to everyone" team -> check pet/master pairing so your own turret doesn't shoot you; projectiles fall back to the instigator. **Small surface area and pure.**
-- **The utility rules (16:32):**
-  - Called from **many** sites -> must read **few** components and have **few or no side effects**.
-  - Reads **many** components and has **many side effects** -> **limit call sites**. Example: `CharacterMoveUtil` moves a player one tick; called in exactly 2 places: server simulating your input, client predicting it.
-- A utility function does not remove complexity by itself; it is "mostly syntactic and organizational". Side effects hidden behind a utility called from many sites are "still pretty horrible coupling."
-- **The talk's headline lesson (18:10):** "Behaviors are much less complex if they are expressed in a single call site in which all major behavioral side effects are localized to that call site."
-
-### Problem 3: big side effects -> deferment (18:10)
-- When a behavior needs a big side effect, ask whether it must happen **now**. **Deferment** = store the state needed to invoke the side effect (usually in a singleton) and invoke it later at a single better moment in the frame.
-- Example: impact effects. Callers include hitscan, travel-time projectiles with explosions, Zarya's channeled beam, sprays. Creating an effect is a big side effect (entity lifetime, threading, scene and resource management) plus a lot of logic: contact resolution by transform / impact type / material, culling, LOD, prioritization, and de-stacking persistent decals (a Pharah scorch mark must delete the Tracer pock marks under it to avoid z-fighting). The only real requirement is "show up before the scene renders", not "in the middle of the sim at a dozen call sites". Copy-pasted call sites multiply ("It's just a function call. No, it's not.").
-- Fix (20:35): `SingletonContact` holds an array of pending contact records. Callers append a record. `ResolveContactSystem` processes all of them once per frame, before scene update / render prep. Bonus benefits: data + instruction cache locality, a **perf budget** (12 D.Vas shooting a wall: spawn the local player's effects now, smear the rest over several frames), and easy fork/join multithreading inside the one call site.
-- Same pattern for damage: `ModifyHealthQueue`.
-- "We constrain you. We throw you in this pit, but it is a pit of success." (22:06)
-
-### How ECS simplified the netcode (~41:00 to 43:27)
-- Netcode-relevant behavior lives in very few systems (movement, weapons/StateScript, `MovementState` handling) and mostly **reads** components. The main mutation is pushing into `ModifyHealthQueue`.
-- Rewind for hit registration is a tuple behavior (anything with `MovementState`); "is shootable" is another (`IsHostileTo` + has `ModifyHealthQueue`). Rewind and damage are orthogonal behaviors on different component slices.
-
-### Lessons learned (43:27)
-- **Use real tuples, not primary + sibling lookups.** Explicit tuples make component access visible; a 40-component tuple warns you the system is too complex. "I kind of like the friction."
-- Tuples give a priori knowledge of which systems touch which components, so systems with disjoint tuples **run in parallel**; tagging components **read-only** lets many readers run together (e.g. `Transform` is read by many, written by few). The prototype engine did this.
-- **Entity lifetime**: deferred *destruction* was fine; deferred *creation* caused off-by-one-frame bugs (create in system A, can't read in system B). They switched to immediate mid-frame creation **after ship** (around patch 1.12/1.13). It made component iterators more complex; Ford calls it still an open problem.
-- **The rules took ~1.5 years to settle**: components have no functions; systems have no state; shared code goes in utils; defer complex side effects by queuing them in (singleton) components; **systems don't call functions on other systems**; plus naming conventions. Old code that breaks the rules is where the churn and bugs are (measured by Perforce changes and bug counts).
-- **Don't shoehorn legacy or specialist subsystems into ECS.** Keep the subsystem intact and wrap it with a **proxy component**. "ECS is a tool for integrating a bunch of systems together. It shouldn't force design principles where it isn't welcome."
-- **Iceberg components**: small surface to ECS, large hidden state underneath. Examples: projectile simulation (scripting asks to spawn projectiles, worker threads simulate them out of sight of ECS) and AI path data (ECS hooks say "this breakable broke / this door opened"; underneath it voxelizes and compresses triangles with fork/join). Path data is also used by hero abilities, so it must stay in sync between client and server.
-- **Closing (49:00):** ECS is "the glue of Overwatch". Define your rules of engagement early, for any architecture. Few engineers touch physics, scripting, or audio internals, but **everyone touches the glue code**, so constrain the glue. Netcode is tricky: decouple it from the rest of the engine as much as you can.
 
 ## Netcode fundamentals (22:19 onward)
 
@@ -117,6 +65,11 @@ The talk's stated goal is "techniques for reducing complexity in an ever growing
 - Nav-mesh rebuilds are deterministic given the same inputs but not rolled back (40 MB); few abilities depend on it; server authority catches mistakes.
 - A debugger exists that flags server/client disagreement per frame and lets you scrub to the movement state that caused it; "almost always the ray that finds where your feet are."
 
+### How ECS simplified the netcode (~41:00 to 43:27)
+- Netcode-relevant behavior lives in very few systems (movement, weapons/StateScript, `MovementState` handling) and mostly **reads** components. The main mutation is pushing into `ModifyHealthQueue` (a deferred damage queue).
+- Rewind for hit registration is a tuple behavior (anything with a `MovementState` component); "is shootable" is another (`CombatUtil::IsHostileTo` + has a `ModifyHealthQueue`). Rewind and damage are separate behaviors on different component sets.
+- Kill Cam is a second world fed a recorded server stream; it works because system state lives in singleton components. See the ECS notes for the rules behind this.
+
 ## Design principles (my synthesis of the talk)
 
 1. Fixed-step, quantized simulation shared by client and server; think in **command frames**, not seconds.
@@ -127,17 +80,10 @@ The talk's stated goal is "techniques for reducing complexity in an ever growing
 6. Server-side **lag compensation** (backwards reconciliation) with **clamps + extrapolation** at high ping; favor the shooter with explicit victim-mitigation exceptions.
 7. Defer big side effects to a single point in the frame; it makes both rollback and multithreading tractable.
 8. Confine netcode to as few systems as possible; most of the game should not know it is networked.
-9. Components hold state with no behavior; systems hold behavior with no state. Put "system state" in **singleton components** so a second world (Kill Cam, replay, resim) just works.
-10. Systems never call other systems. Shared behavior goes in **utility functions**: many call sites -> few components, pure; many side effects -> very few call sites (e.g. one move function called by server sim and client prediction only).
-11. Use explicit component tuples, with read/write tags if possible; they make coupling visible and give you parallel scheduling for free.
-12. Wrap specialist subsystems (physics, pathing, projectiles, audio) behind thin proxy components; don't force them into ECS.
-13. Write the rules of engagement for the glue code down early and enforce them; that's the code everyone touches.
 
 ## Q&A points worth keeping (from the Q&A after ~50:18)
 
-- No double-buffered component state; only `InputStream` (2 s) and `MovementState` (1-2 s) ring buffers are time-scrubbable.
-- Projectile hostility looks up the instigator instead of copying state (Genji deflect changes ownership).
-- Entity creation was made synchronous mid-frame after ship; deferred creation caused off-by-one-frame bugs.
+- Only the `InputStream` (2 s) and `MovementState` (1-2 s) ring buffers are time-scrubbable; there is no double-buffered component state.
 - Sim must run 60 Hz; death spiral risk; per-remote-player script budget.
 - Quantization 1/1024 m; deterministic across compilers/platforms because of quantization.
 - Misprediction smoothing hides small non-determinism; a timeline debugger finds the rest.

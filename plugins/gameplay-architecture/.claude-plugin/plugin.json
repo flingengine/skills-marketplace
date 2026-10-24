@@ -1,0 +1,11 @@
+{
+  "name": "gameplay-architecture",
+  "version": "0.1.0",
+  "description": "Strict ECS gameplay-architecture skill (Overwatch style: stateless systems, singleton components, utility-function rules, deferred side effects), with credited notes on Timothy Ford's GDC 2017 talk and guidance for moving Fling Engine to that model.",
+  "author": {
+    "name": "Fling Engine"
+  },
+  "homepage": "https://github.com/flingengine/skills-marketplace",
+  "license": "MIT",
+  "keywords": ["ecs", "entity-component-system", "gameplay-architecture", "entt", "game-engine", "overwatch"]
+}

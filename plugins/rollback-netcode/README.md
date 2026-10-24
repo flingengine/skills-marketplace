@@ -22,7 +22,7 @@ references/                         # its reference library (study notes)
   README.md                         # sources, authors, licence status
   ggpo-networking-source/           # notes + GGPO source subset (MIT, LICENSE included)
   mk-rollback-talk/                 # notes on Stallone, GDC 2018
-  overwatch-netcode-talk/           # notes on Ford, GDC 2017
+  overwatch-netcode-talk/           # notes on Ford, GDC 2017 (netcode half)
   multiplayer-game-programming/     # notes on Glazer & Madhav, Ch. 8, + fetch script for the sample code
 ```
 
